@@ -99,14 +99,21 @@ async function storageDownload(storagePath) {
 /** Check if a file exists in Supabase Storage using direct HEAD request */
 async function storageExists(storagePath) {
   try {
-    const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${storagePath}`, {
-      method: 'HEAD',
+    const parts = storagePath.split('/');
+    const filename = parts.pop();
+    const prefix = parts.length > 0 ? parts.join('/') + '/' : '';
+    const res = await fetch(`${SUPABASE_URL}/storage/v1/object/list/${BUCKET}`, {
+      method: 'POST',
       headers: {
         'apikey': SUPABASE_KEY,
         'Authorization': `Bearer ${SUPABASE_KEY}`,
+        'Content-Type': 'application/json',
       },
+      body: JSON.stringify({ prefix, limit: 1000, search: filename }),
     });
-    return res.ok;
+    if (!res.ok) return false;
+    const files = await res.json();
+    return Array.isArray(files) && files.some(f => f.name === filename);
   } catch (e) {
     return false;
   }
