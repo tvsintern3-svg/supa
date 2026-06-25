@@ -96,23 +96,20 @@ async function storageDownload(storagePath) {
   return Buffer.from(arrayBuf);
 }
 
-/** Check if a file exists in Supabase Storage */
+/** Check if a file exists in Supabase Storage using direct HEAD request */
 async function storageExists(storagePath) {
-  // List files in the folder and check if the filename is present
-  const folder = storagePath.includes('/') ? storagePath.split('/').slice(0, -1).join('/') : '';
-  const filename = storagePath.split('/').pop();
-  const res = await fetch(`${SUPABASE_URL}/storage/v1/object/list/${BUCKET}`, {
-    method: 'POST',
-    headers: {
-      'apikey': SUPABASE_KEY,
-      'Authorization': `Bearer ${SUPABASE_KEY}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({ prefix: folder ? folder + '/' : '', limit: 1000 }),
-  });
-  if (!res.ok) return false;
-  const files = await res.json();
-  return Array.isArray(files) && files.some(f => f.name === filename);
+  try {
+    const res = await fetch(`${SUPABASE_URL}/storage/v1/object/${BUCKET}/${storagePath}`, {
+      method: 'HEAD',
+      headers: {
+        'apikey': SUPABASE_KEY,
+        'Authorization': `Bearer ${SUPABASE_KEY}`,
+      },
+    });
+    return res.ok;
+  } catch (e) {
+    return false;
+  }
 }
 
 // ─── Load all machines (with nested parts) from Supabase ─────────────────────
